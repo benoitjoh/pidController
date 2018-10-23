@@ -57,8 +57,8 @@ class PidController
         int max_eSum; 
         int intervall_millis; 
         unsigned long pccPowerLastCheckMillis; //time, the pwr was last adjusted.
-		int eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand 
-		int eSum = 0;        // integration of all deltas in the past // for the I-summand
+		long eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand 
+		long eSum = 0;        // integration of all deltas in the past // for the I-summand
 		float resultPowerExact = 0; // calculation result must be finer than pccPower
 
         

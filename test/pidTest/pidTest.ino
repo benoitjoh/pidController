@@ -3,11 +3,11 @@
 #include <LiquidCrystal_SR2W.h>
 LiquidCrystal_SR2W lcd(8, 7, POSITIVE);
 
+#define PIN_ANALOG_TACHO 0
+
 #include<AnalogKbd.h>
-AnalogKbd kbd(0, 5, 40, 400);
+AnalogKbd kbd(PIN_ANALOG_TACHO, 5, 40, 400);
 byte kbdValue = 255; //the value that is read from keyboard
-
-
 
 #include<RpmMeter.h>
 #define PIN_SIGNAL   2  // pin for the signal of sensor
@@ -24,19 +24,18 @@ byte kbdValue = 255; //the value that is read from keyboard
 //int kp, int ki, int kd, int max_i, int max_d, int intervall_millis, int max_pwr
 #define PID_KP 2
 #define PID_KI 0
-#define PID_KD 0
-#define PID_MAX_E 50
-#define PID_MAX_E_SUM 100
+#define PID_KD 6
+#define PID_MAX_E 200
+#define PID_MAX_E_SUM 300
 #define PID_INTERVALL_MILLIS 200 
 
 PidController pid(PID_KP, PID_KI, PID_KD, PID_MAX_E, PID_MAX_E_SUM, PID_INTERVALL_MILLIS, PCC_POWER_MAX);
 
 int pccPower = 0; // value for the phase cut modulation control 0 ... 999; zero is OFF
 int pccPowerLast = 0;
-int desiredRpm = 0;
+int desiredRpm = 400;
 int actualRpm = 0;
 
-#define PIN_ANALOG_TACHO 1
 
 void setup()
 {
@@ -49,7 +48,7 @@ void setup()
   lcd.setCursor(0,1);
   lcd.print("pid controller");
   lcd.noCursor();
-  delay(1200);
+  delay(400);
   lcd.clear();
   Serial.begin(9600);
 

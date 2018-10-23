@@ -1,6 +1,9 @@
 #include "PidController.h"
 #include "Arduino.h"
 
+
+#define INCREASE_FACTOR 100
+
 #define DEBUG_SPEEDCONTROL 1
 
 #ifdef DEBUG_SPEEDCONTROL
@@ -16,9 +19,9 @@ String lFill(String a, byte len, String letter)
 
 PidController::PidController(int kp, int ki, int kd, int max_e, int max_eSum, int intervall_millis, int max_pwr)
 {
-    this->kp = kp; 
-    this->ki = ki; 
-    this->kd = kd; 
+    this->kp = kp * INCREASE_FACTOR; 
+    this->ki = ki * INCREASE_FACTOR; 
+    this->kd = kd * INCREASE_FACTOR; 
     this->max_e = max_e; 
     this->max_eSum = max_eSum; 
     this->intervall_millis = intervall_millis; 
@@ -35,9 +38,9 @@ PidController::PidController(int kp, int ki, int kd, int max_e, int max_eSum, in
 int PidController::regulate(int desired, int actual)
 {
 	
-    int e = 0;
-    int d = 0;
-    float y = 0.;
+    long e = 0;
+    long d = 0;
+    long y = 0;
     
     if (desired == 0)
     {
@@ -54,13 +57,18 @@ int PidController::regulate(int desired, int actual)
             
             e = constrain(actual - desired, -max_e, max_e); // diff between target and actual speed
             d = e - eLast;
-            eSum = eSum + d; 
-              
+            
+            // integration for the i part
+            eSum = constrain(eSum + e, -max_eSum, max_eSum); 
+            
+            // save for next call difference at last measurement, used for D - part
+            eLast = e; 
+             
             // PID formula 
-            y = - ( kp * e + ki * intervall_millis * eSum + kd * d / intervall_millis );
+            y = - ( kp * e + ki * eSum + kd * d );
             
  
-            resultPowerExact += y;
+            resultPowerExact += (float)y / INCREASE_FACTOR / 10;
             
 
             // map the float to integer parameter pccPower and limit it to 0 .. max range 
@@ -71,11 +79,9 @@ int PidController::regulate(int desired, int actual)
                             "\t" + lFill(String(e), 6, " ") + 
                             "\t" + lFill(String(eSum), 6, " ") + 
                             "\t" + lFill(String(d), 6, " ") + 
-                            "\t" + lFill(String(y), 8, " ") + 
+                            "\t" + lFill(String(y / INCREASE_FACTOR), 8, " ") + 
                             "\t" + lFill(String(int(resultPowerExact)), 6, " ") + "\n");
 #endif     
-            // save for next call
-            eLast = e; // difference at last measurement, used for D - part
 
         }
     }
