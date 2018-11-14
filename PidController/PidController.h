@@ -44,7 +44,8 @@ class PidController
 {
     public:
         // methods
-        PidController(int kp, int ki, int kd, int max_e, int max_eSum, int intervall_millis, int max_pwr);
+        PidController(int max_e, int max_eSum, int intervall_millis, int max_pwr);
+        void set_parameters(int kp, int ki, int kd);
         int regulate(int desired, int actual);
  
     private:

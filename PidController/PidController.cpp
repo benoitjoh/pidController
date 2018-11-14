@@ -17,11 +17,8 @@ String lFill(String a, byte len, String letter)
 }
 #endif
 
-PidController::PidController(int kp, int ki, int kd, int max_e, int max_eSum, int intervall_millis, int max_pwr)
+PidController::PidController(int max_e, int max_eSum, int intervall_millis, int max_pwr)
 {
-    this->kp = kp * INCREASE_FACTOR; 
-    this->ki = ki * INCREASE_FACTOR; 
-    this->kd = kd * INCREASE_FACTOR; 
     this->max_e = max_e; 
     this->max_eSum = max_eSum; 
     this->intervall_millis = intervall_millis; 
@@ -33,6 +30,13 @@ PidController::PidController(int kp, int ki, int kd, int max_e, int max_eSum, in
     eSum = 0;        // integration of all deltas in the past // for the I-summand
     resultPowerExact = 0; // calculation result must be finer than pccPower
 
+}
+
+void PidController::set_parameters(int kp, int ki, int kd)
+{
+    this->kp = kp * INCREASE_FACTOR; 
+    this->ki = ki * INCREASE_FACTOR; 
+    this->kd = kd * INCREASE_FACTOR; 
 }
 
 int PidController::regulate(int desired, int actual)
