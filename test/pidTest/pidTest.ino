@@ -49,14 +49,12 @@ void setup()
 
   RPM.initialize(PIN_SIGNAL, SIG_PER_TURN, SAMPLES_COUNT);
   PCCtrl.initialize(PIN_IN_ACZERO_SIGNAL, PIN_PCC_OUT_A, PCC_POWER_MAX);
-  lcd.begin(16,2);               // initialize the lcd
+  lcd.begin(16,2);              // initialize the lcd
   lcd.home();                   // go home
   lcd.setBacklight(1);
-  lcd.print("Adjustment for");
-  lcd.setCursor(0,1);
-  lcd.print("pid controller");
+  lcd.print("pid adjuster");
   lcd.noCursor();
-  delay(400);
+  delay(900);
   lcd.clear();
   Serial.begin(9600);
 
@@ -64,7 +62,7 @@ void setup()
 
 String leftFill(String a, byte len, String letter)
 {
-    // fills a string with letters from left side that the resulting length is reached
+    // fills a string with letters from left side that the resultstring length is reached
     while (a.length() < len)
     {
         a = letter + a;
@@ -129,7 +127,6 @@ void loop()
 
     lcd.home();
     lcd.print("kp" + leftFill(String(PID_KP), 2, " ") + "  ki" + leftFill(String(PID_KI), 2, " ") + "  kd" + leftFill(String(PID_KD), 2, " "));
-    //lcd.print("kp" + leftFill(String(PID_KP), 3, " ") + "ki" + leftFill(String(desiredRpm), 6, " ") + " ");
     lcd.setCursor(0,1);
     lcd.print("P" + leftFill(String(pccPower), 3, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " A" + leftFill(String(actualRpm), 4, " "));
      delay(25);

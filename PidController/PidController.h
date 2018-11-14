@@ -28,9 +28,6 @@
 //    y = Kp * e + Ki * Ta * esum + Kd * (e - eLast)/Ta
 //    eLast = e
 //
-// PD controller  (this is the prefered method. PID gets in resonance)
-//    y = Kp * e + Kd * (e – eLast)/Ta
-//    eLast = e
 //                                                       Johannes Benoit 2017
 // **************************************************************************
 
@@ -53,14 +50,14 @@ class PidController
         int kp; 
         int ki; 
         int kd;
-        int max_pwr;
+        long max_pwr;
         int max_e;
         int max_eSum; 
         int intervall_millis; 
         unsigned long pccPowerLastCheckMillis; //time, the pwr was last adjusted.
 		long eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand 
 		long eSum = 0;        // integration of all deltas in the past // for the I-summand
-		float resultPowerExact = 0; // calculation result must be finer than pccPower
+		int resultPowerExact = 0; // calculation result must be finer than pccPower
 
         
     protected:

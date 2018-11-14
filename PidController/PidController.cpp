@@ -2,8 +2,6 @@
 #include "Arduino.h"
 
 
-#define INCREASE_FACTOR 100
-
 #define DEBUG_SPEEDCONTROL 1
 
 #ifdef DEBUG_SPEEDCONTROL
@@ -23,6 +21,7 @@ PidController::PidController(int max_e, int max_eSum, int intervall_millis, int 
     this->max_eSum = max_eSum; 
     this->intervall_millis = intervall_millis; 
     this->max_pwr = max_pwr; 
+    this->max_pwr = this->max_pwr << 8; // use bigger range for exact calculations
    
     pccPowerLastCheckMillis = 0; //time, the pwr was last adjusted.
     
@@ -34,9 +33,9 @@ PidController::PidController(int max_e, int max_eSum, int intervall_millis, int 
 
 void PidController::set_parameters(int kp, int ki, int kd)
 {
-    this->kp = kp * INCREASE_FACTOR; 
-    this->ki = ki * INCREASE_FACTOR; 
-    this->kd = kd * INCREASE_FACTOR; 
+    this->kp = kp * 5; 
+    this->ki = ki; 
+    this->kd = kd * 10 * (200 / intervall_millis) ; 
 }
 
 int PidController::regulate(int desired, int actual)
@@ -72,10 +71,10 @@ int PidController::regulate(int desired, int actual)
             y = - ( kp * e + ki * eSum + kd * d );
             
  
-            resultPowerExact += (float)y / INCREASE_FACTOR / 10;
+            resultPowerExact += y ;
             
 
-            // map the float to integer parameter pccPower and limit it to 0 .. max range 
+            // map the float to integer parameter pccPower and limit it to 0 .. max range*256
             resultPowerExact = constrain(resultPowerExact, 0, max_pwr);
             
 #ifdef DEBUG_SPEEDCONTROL
@@ -83,13 +82,14 @@ int PidController::regulate(int desired, int actual)
                             "\t" + lFill(String(e), 6, " ") + 
                             "\t" + lFill(String(eSum), 6, " ") + 
                             "\t" + lFill(String(d), 6, " ") + 
-                            "\t" + lFill(String(y / INCREASE_FACTOR), 8, " ") + 
-                            "\t" + lFill(String(int(resultPowerExact)), 6, " ") + "\n");
+                            "\t" + lFill(String(y ), 8, " ") + 
+                            "\t" + lFill(String(resultPowerExact), 8, "0") +                           
+                            "\t" + lFill(String(resultPowerExact >> 8), 3, "0") + "\n");
 #endif     
 
         }
     }
-    return int(resultPowerExact);   	
+    return resultPowerExact >> 8;   // reduce to defined range	
     
 
 }
