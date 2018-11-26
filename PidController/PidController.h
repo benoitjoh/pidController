@@ -42,7 +42,7 @@ class PidController
     public:
         // methods
         PidController(int max_e, int max_eSum, int intervall_millis, int max_pwr);
-        void set_parameters(int kp, int ki, int kd);
+        void set_parameters(byte kp, byte ki, byte kd);
         int regulate(int desired, int actual);
  
     private:
@@ -57,7 +57,7 @@ class PidController
         unsigned long pccPowerLastCheckMillis; //time, the pwr was last adjusted.
 		long eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand 
 		long eSum = 0;        // integration of all deltas in the past // for the I-summand
-		int resultPowerExact = 0; // calculation result must be finer than pccPower
+		long resultPowerExact = 0; // calculation result must be finer than pccPower
 
         
     protected:

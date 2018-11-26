@@ -2,7 +2,7 @@
 #include "Arduino.h"
 
 
-#define DEBUG_SPEEDCONTROL 1
+//#define DEBUG_SPEEDCONTROL 1
 
 #ifdef DEBUG_SPEEDCONTROL
 String lFill(String a, byte len, String letter)
@@ -31,7 +31,7 @@ PidController::PidController(int max_e, int max_eSum, int intervall_millis, int 
 
 }
 
-void PidController::set_parameters(int kp, int ki, int kd)
+void PidController::set_parameters(byte kp, byte ki, byte kd)
 {
     this->kp = kp * 5; 
     this->ki = ki; 
@@ -55,6 +55,7 @@ int PidController::regulate(int desired, int actual)
         // ... otherwise calculate in definded intervalls
         if (millis() - pccPowerLastCheckMillis > intervall_millis )
         {
+
             // now its time for a adjustment
             pccPowerLastCheckMillis = millis(); // save time of last adjustment
             
@@ -74,7 +75,7 @@ int PidController::regulate(int desired, int actual)
             resultPowerExact += y ;
             
 
-            // map the float to integer parameter pccPower and limit it to 0 .. max range*256
+            // map the long to integer parameter pccPower and limit it to 0 .. max range*256
             resultPowerExact = constrain(resultPowerExact, 0, max_pwr);
             
 #ifdef DEBUG_SPEEDCONTROL
@@ -89,7 +90,7 @@ int PidController::regulate(int desired, int actual)
 
         }
     }
-    return resultPowerExact >> 8;   // reduce to defined range	
+    return resultPowerExact >> 8;   // reduce to desired range	
     
 
 }

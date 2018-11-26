@@ -1,12 +1,13 @@
-// Diagnose program to display reads of all ad-inputs on display
+// Diagnose program to adjust parameters of pid controller
+
 
 #include <LiquidCrystal_SR2W.h>
 LiquidCrystal_SR2W lcd(8, 7, POSITIVE);
 
-#define PIN_ANALOG_TACHO 0
+#define PIN_ANALOG_KEYBOARD 0
 
 #include<AnalogKbd.h>
-AnalogKbd kbd(PIN_ANALOG_TACHO, 5, 40, 400);
+AnalogKbd kbd(PIN_ANALOG_KEYBOARD, 5, 40, 400);
 byte kbdValue = 255; //the value that is read from keyboard
 
 // speed measurement tool for the motor
@@ -113,7 +114,6 @@ void loop()
     pid.set_parameters(PID_KP, PID_KI, PID_KD);
     
     
-    int adValue = analogRead(PIN_ANALOG_TACHO);
     actualRpm = RPM.getRpm();
     
     pccPower = pid.regulate(desiredRpm, actualRpm);
