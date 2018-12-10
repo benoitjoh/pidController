@@ -27,9 +27,16 @@ byte kbdValue = 255; //the value that is read from keyboard
 // the speed regulator
 #include <PidController.h>
 // controller parameters that can be changed to adjust response of the system
-byte PID_KP = 2;
-byte PID_KI = 0;
-byte PID_KD = 6;
+struct
+{
+    byte kp = 2;
+    byte ki = 0;
+    byte kd = 16;
+} pidconf;
+
+// ---- EEPROM support
+#include "eeAny.h"
+#define EE_OFFSET 128
 
 // fixed parameters
 #define PID_MAX_E 200
@@ -46,7 +53,11 @@ int actualRpm = 0;
 
 void setup()
 {
-  pid.set_parameters(PID_KP, PID_KI, PID_KD);
+  if (analogRead(PIN_ANALOG_KEYBOARD) < 20)
+    {
+       EEPROM_readAnything(EE_OFFSET, pidconf);
+    }
+  pid.set_parameters(pidconf.kp, pidconf.ki, pidconf.kd);
 
   RPM.initialize(PIN_SIGNAL, SIG_PER_TURN, SAMPLES_COUNT);
   PCCtrl.initialize(PIN_IN_ACZERO_SIGNAL, PIN_PCC_OUT_A, PCC_POWER_MAX);
@@ -87,22 +98,29 @@ void loop()
            break;
         // adjust the regulators parameters
         case  0:
-           PID_KP++;
+           pidconf.kp++;
            break;
         case  128:
-           PID_KP--;
+           pidconf.kp--;
            break;
         case  1:
-           PID_KI++;
+           pidconf.ki++;
            break;
         case  129:
-           PID_KI--;
+           pidconf.ki--;
            break;
         case  2:
-           PID_KD++;
+           pidconf.kd++;
            break;
         case  130:
-           PID_KD--;
+           pidconf.kd--;
+           break;
+        case  132:
+           EEPROM_writeAnything(EE_OFFSET, pidconf);
+           lcd.clear(); 
+           lcd.print("stored to EEPROM.");
+           delay(900);
+
            break;
 
         
@@ -111,7 +129,7 @@ void loop()
         
     }
     kbdValue = 255;
-    pid.set_parameters(PID_KP, PID_KI, PID_KD);
+    pid.set_parameters(pidconf.kp, pidconf.ki, pidconf.kd);
     
     
     actualRpm = RPM.getRpm();
@@ -126,7 +144,7 @@ void loop()
     
 
     lcd.home();
-    lcd.print("kp" + leftFill(String(PID_KP), 2, " ") + "  ki" + leftFill(String(PID_KI), 2, " ") + "  kd" + leftFill(String(PID_KD), 2, " "));
+    lcd.print("kp" + leftFill(String(pidconf.kp), 2, " ") + "  ki" + leftFill(String(pidconf.ki), 2, " ") + "  kd" + leftFill(String(pidconf.kd), 2, " "));
     lcd.setCursor(0,1);
     lcd.print("P" + leftFill(String(pccPower), 3, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " A" + leftFill(String(actualRpm), 4, " "));
      delay(25);
