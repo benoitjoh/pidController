@@ -2,7 +2,7 @@
 #include "Arduino.h"
 
 
-//#define DEBUG_SPEEDCONTROL 1
+#define DEBUG_SPEEDCONTROL 1
 
 #ifdef DEBUG_SPEEDCONTROL
 String lFill(String a, byte len, String letter)
@@ -63,13 +63,14 @@ int PidController::regulate(int desired, int actual)
             d = e - eLast;
             
             // integration for the i part
-            eSum = constrain(eSum + e, -max_eSum, max_eSum); 
-            
+            eSum = eSum + e; 
+            int myeSum = constrain(eSum + e, -max_eSum, max_eSum); 
+ 
             // save for next call difference at last measurement, used for D - part
             eLast = e; 
              
             // PID formula 
-            y = - ( kp * e + ki * eSum + kd * d );
+            y = - ( kp * e + ki * myeSum + kd * d );
             
  
             resultPowerExact += y ;
@@ -81,7 +82,7 @@ int PidController::regulate(int desired, int actual)
 #ifdef DEBUG_SPEEDCONTROL
            Serial.print("SPC:\t" + lFill(String(actual), 6, " ") + 
                             "\t" + lFill(String(e), 6, " ") + 
-                            "\t" + lFill(String(eSum), 6, " ") + 
+                            "\t" + lFill(String(myeSum), 6, " ") + 
                             "\t" + lFill(String(d), 6, " ") + 
                             "\t" + lFill(String(y ), 8, " ") + 
                             "\t" + lFill(String(resultPowerExact), 8, "0") +                           
