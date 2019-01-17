@@ -44,6 +44,7 @@ class PidController
         PidController(int max_e, int max_eSum, int intervall_millis, int max_pwr);
         void set_parameters(byte kp, byte ki, byte kd);
         int regulate(int desired, int actual);
+        void checkOverload();
  
     private:
         // parameters

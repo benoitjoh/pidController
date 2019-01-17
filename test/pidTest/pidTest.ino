@@ -22,7 +22,7 @@ byte kbdValue = 255; //the value that is read from keyboard
 #include <PhaseCutCtrl.h>
 #define PIN_IN_ACZERO_SIGNAL   3  // pin for AC zeropoint detection (Interrupt source, so can only be 2 or 3) 
 #define PIN_PCC_OUT_A          4  // pin for pulse cut modulation output
-#define PCC_POWER_MAX 999    // represents 100% power
+#define PCC_POWER_MAX 2018    // represents 100% power
 
 // the speed regulator
 #include <PidController.h>
@@ -46,10 +46,14 @@ struct
 PidController pid(PID_MAX_E, PID_MAX_E_SUM, PID_INTERVALL_MILLIS, PCC_POWER_MAX);
 
 int pccPower = 0; // value for the phase cut modulation control 0 ... 999; zero is OFF
-int pccPowerLast = 0;
+int pccPowerLast = -1;
 int desiredRpm = 400;
 int actualRpm = 0;
 
+// --- use driver for latch register
+#include <LatchControl.h>
+#define PIN_LATCH_DATACLOCK  10           // shiftregister: clock (and data) signal
+LatchControl latch(PIN_LATCH_DATACLOCK);
 
 void setup()
 {
@@ -60,7 +64,7 @@ void setup()
   pid.set_parameters(pidconf.kp, pidconf.ki, pidconf.kd);
 
   RPM.initialize(PIN_SIGNAL, SIG_PER_TURN, SAMPLES_COUNT);
-  PCCtrl.initialize(PIN_IN_ACZERO_SIGNAL, PIN_PCC_OUT_A, PCC_POWER_MAX);
+  PCCtrl.initialize(PIN_IN_ACZERO_SIGNAL, PIN_PCC_OUT_A);
   lcd.begin(16,2);              // initialize the lcd
   lcd.home();                   // go home
   lcd.setBacklight(1);
@@ -70,8 +74,19 @@ void setup()
   lcd.clear();
   Serial.begin(9600);
 
+  // PIN 11 is the out put enable for the latch
+  latch.reset();
+  delay(500);
+  pinMode(11, OUTPUT);
+  digitalWrite(11, HIGH);
+  
+//  for (int i=0; i<2049; i++)
+//  {
+//      PCCtrl.set_pcc(i);
+//  }
+  
 }
-
+  
 String leftFill(String a, byte len, String letter)
 {
     // fills a string with letters from left side that the resultstring length is reached
@@ -133,7 +148,6 @@ void loop()
     
     
     actualRpm = RPM.getRpm();
-    
     pccPower = pid.regulate(desiredRpm, actualRpm);
 
     if (pccPower != pccPowerLast)
@@ -146,9 +160,11 @@ void loop()
     lcd.home();
     lcd.print("kp" + leftFill(String(pidconf.kp), 2, " ") + "  ki" + leftFill(String(pidconf.ki), 2, " ") + "  kd" + leftFill(String(pidconf.kd), 2, " "));
     lcd.setCursor(0,1);
-    lcd.print("P" + leftFill(String(pccPower), 3, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " A" + leftFill(String(actualRpm), 4, " "));
-     delay(25);
+    lcd.print(leftFill(String(pccPower), 4, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " A" + leftFill(String(actualRpm), 4, " "));
+
+    // magic eye
+    int d = constrain((actualRpm - desiredRpm) / 3, -3, 3) + 3;
+    latch.setComplete(1 << d);
+    
+    delay(25);
 }
-
-
-
