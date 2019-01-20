@@ -4,6 +4,8 @@
 // int value that represents the maximum power:
 #define MAX_POWER 2048
 
+#define MINIMUM_STOP_TIME 500
+
 // time bewteen two regulation events in milliseconds
 #define INTERVALL_REGULATE_MILLIS 255
 
@@ -31,6 +33,8 @@ PidController::PidController(int max_e, int max_eSum)
 {
     this->max_e = max_e;
     this->max_eSum = max_eSum;
+    this->pinDirSwitch = pinDirSwitch;
+
 
     pccPowerLastCheckMillis = 0; //time, the pwr was last adjusted.
 
@@ -50,6 +54,7 @@ void PidController::checkOverload()
 
 }
 
+
 void PidController::set_parameters(byte kp, byte ki, byte kd)
 {
     this->kp = kp;
@@ -57,10 +62,75 @@ void PidController::set_parameters(byte kp, byte ki, byte kd)
     this->kd = kd;
 }
 
+void PidController::enable_direction_management(byte pinDirSwitch)
+{
+    // enable direction management
+    this->pinDirSwitch = pinDirSwitch;
+    pinMode(pinDirSwitch, OUTPUT);
+}
+
+void PidController::set_direction(byte desiredDirection)
+{
+    isDirChangeRequested = (actualDirection != desiredDirection);
+#ifdef DEBUG_SPEEDCONTROL
+    Serial.print("SPC: direction change reqested \n");
+#endif
+
+}
+
+
+
 int PidController::regulate(int desired, int actual)
 {
+    if (pinDirSwitch != 255)
+    {
+        // Direction managment is enabled
 
-    long y = 0;
+        // determine stop state (for directinon change)
+        if (actual == 0)
+        {
+            if (isStoped == false)
+            {
+                isStoped = true;
+                stoppedSinceMillis = millis();
+#ifdef DEBUG_SPEEDCONTROL
+                Serial.print("SPC: STOPPED\n");
+#endif
+           }
+
+
+        }
+        else
+        {
+            isStoped = false;
+        }
+
+        // handle direction change request
+
+        if (isDirChangeRequested)
+        {
+            desired = 0;
+
+            if (isStoped == true)
+            {
+
+            if (millis() - stoppedSinceMillis > MINIMUM_STOP_TIME)
+                {
+                    //switch direction
+                    actualDirection = ~actualDirection & 1;
+                    isDirChangeRequested = false;
+                    digitalWrite(pinDirSwitch, actualDirection);
+#ifdef DEBUG_SPEEDCONTROL
+                    Serial.print("SPC: dir set to " + String(actualDirection) + " \n");
+#endif
+
+                }
+            }
+        }
+    }
+
+
+    int y = 0;
 
     if (desired == 0)
     {
@@ -114,6 +184,7 @@ int PidController::regulate(int desired, int actual)
 
 #ifdef DEBUG_SPEEDCONTROL
            PORTB &= ~B00100000; //set pin13 back to LOW for timemeasurement
+
            Serial.print("SPC:\t" + lFill(String(actual), 6, " ") +
                             "\t" + lFill(String(desired), 5, " ") +
                             "\t" + lFill(String(e), 5, " ") +

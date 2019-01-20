@@ -46,6 +46,9 @@ class PidController
         int regulate(int desired, int actual);
         void checkOverload();
 
+        void enable_direction_management(byte pinDirSwitch);
+        void set_direction(byte desiredDirection);
+
     private:
         // parameters
         byte kp;
@@ -58,6 +61,16 @@ class PidController
 		int eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand
 		int eSum = 0;        // integration of all deltas in the past // for the I-summand
 		int resultPower = 0; // calculation result must be finer than pccPower
+
+
+		// stuff to handle direction steering
+
+		byte pinDirSwitch = 255; // 255 means: pin is not used.
+		bool isStoped = false;
+		unsigned long stoppedSinceMillis = 0;
+        byte actualDirection = 0;
+        bool isDirChangeRequested = false;
+
 
 
     protected:

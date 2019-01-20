@@ -34,6 +34,8 @@ byte kbdValue = 255; //the value that is read from keyboard
 // controller parameters that can be changed to adjust response of the system
 //   min power = 0; max power = 2048
 
+
+
 // keep the adjustable pid parameters in a struct
 struct
 {
@@ -51,8 +53,9 @@ PidController pid(PID_MAX_E, PID_MAX_E_SUM);
 
 int pccPower = 0; // value for the phase cut modulation control 0 ... 2048; zero is OFF
 int pccPowerLast = -1;
-int desiredRpm = 400;
+int desiredRpm = 600;
 int actualRpm = 0;
+int dir = 0;
 
 // --- use driver for latch register
 #include <LatchControl.h>
@@ -66,6 +69,7 @@ void setup()
        EEPROM_readAnything(EE_OFFSET, pidconf);
     }
   pid.set_parameters(pidconf.kp, pidconf.ki, pidconf.kd);
+  pid.enable_direction_management(5);
 
   RPM.initialize(PIN_SIGNAL, SIG_PER_TURN, SAMPLES_COUNT);
   PCCtrl.initialize(PIN_IN_ACZERO_SIGNAL, PIN_PCC_OUT_A);
@@ -134,6 +138,12 @@ void loop()
         case  130:
            pidconf.kd--;
            break;
+        case  131:
+           dir = ~dir & 1;
+           delay(900);
+           pid.set_direction(dir);
+           break;
+
         case  132:
            EEPROM_writeAnything(EE_OFFSET, pidconf);
            lcd.clear(); 
@@ -160,11 +170,15 @@ void loop()
     }
     pccPowerLast = pccPower; 
     
-
+    String dirName = "R";
+    if (dir == 1)
+    {
+        dirName = "L";
+    }
     lcd.home();
     lcd.print("kp" + leftFill(String(pidconf.kp), 2, " ") + "  ki" + leftFill(String(pidconf.ki), 2, " ") + "  kd" + leftFill(String(pidconf.kd), 2, " "));
     lcd.setCursor(0,1);
-    lcd.print(leftFill(String(pccPower), 4, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " A" + leftFill(String(actualRpm), 4, " "));
+    lcd.print(leftFill(String(pccPower), 4, "0")+ " D" + leftFill(String(desiredRpm), 4, " ")+ " " + leftFill(String(actualRpm), 4, " ")+ dirName);
 
     // magic eye
     int d = constrain((actualRpm - desiredRpm) / 3, -3, 3) + 3;
