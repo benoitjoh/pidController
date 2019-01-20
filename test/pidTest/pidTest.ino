@@ -19,14 +19,22 @@ byte kbdValue = 255; //the value that is read from keyboard
 
 // phase cut controller  
 //   note: class is preinstantiated as PCCtrl
+//   min power = 0; max power = 2048
 #include <PhaseCutCtrl.h>
 #define PIN_IN_ACZERO_SIGNAL   3  // pin for AC zeropoint detection (Interrupt source, so can only be 2 or 3) 
 #define PIN_PCC_OUT_A          4  // pin for pulse cut modulation output
-#define PCC_POWER_MAX 2018    // represents 100% power
+
+// ---- EEPROM support
+#include "eeAny.h"
+#define EE_OFFSET 128
+
 
 // the speed regulator
 #include <PidController.h>
 // controller parameters that can be changed to adjust response of the system
+//   min power = 0; max power = 2048
+
+// keep the adjustable pid parameters in a struct
 struct
 {
     byte kp = 2;
@@ -34,25 +42,21 @@ struct
     byte kd = 16;
 } pidconf;
 
-// ---- EEPROM support
-#include "eeAny.h"
-#define EE_OFFSET 128
 
 // fixed parameters
 #define PID_MAX_E 200
 #define PID_MAX_E_SUM 300
-#define PID_INTERVALL_MILLIS 200 
 
-PidController pid(PID_MAX_E, PID_MAX_E_SUM, PID_INTERVALL_MILLIS, PCC_POWER_MAX);
+PidController pid(PID_MAX_E, PID_MAX_E_SUM);
 
-int pccPower = 0; // value for the phase cut modulation control 0 ... 999; zero is OFF
+int pccPower = 0; // value for the phase cut modulation control 0 ... 2048; zero is OFF
 int pccPowerLast = -1;
 int desiredRpm = 400;
 int actualRpm = 0;
 
 // --- use driver for latch register
 #include <LatchControl.h>
-#define PIN_LATCH_DATACLOCK  10           // shiftregister: clock (and data) signal
+#define PIN_LATCH_DATACLOCK  10           // shiftregister: clock, data and l(and data) signal
 LatchControl latch(PIN_LATCH_DATACLOCK);
 
 void setup()
@@ -68,7 +72,7 @@ void setup()
   lcd.begin(16,2);              // initialize the lcd
   lcd.home();                   // go home
   lcd.setBacklight(1);
-  lcd.print("pid adjuster");
+  lcd.print("pid test program");
   lcd.noCursor();
   delay(900);
   lcd.clear();

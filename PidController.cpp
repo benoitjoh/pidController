@@ -1,7 +1,17 @@
 #include "PidController.h"
 #include "Arduino.h"
 
+// int value that represents the maximum power:
+#define MAX_POWER 2048
 
+// time bewteen two regulation events in milliseconds
+#define INTERVALL_REGULATE_MILLIS 255
+
+// if desired rpm is lower than this value, the y differential is divided by two
+#define LOW_RPM_LIMIT 550
+
+
+// turn on debug:
 //#define DEBUG_SPEEDCONTROL 1
 
 #ifdef DEBUG_SPEEDCONTROL
@@ -17,19 +27,16 @@ String lFill(String a, byte len, String letter)
 
 
 
-PidController::PidController(int max_e, int max_eSum, int intervall_millis, int max_pwr)
+PidController::PidController(int max_e, int max_eSum)
 {
     this->max_e = max_e;
     this->max_eSum = max_eSum;
-    this->intervall_millis = intervall_millis;
-    this->max_pwr = max_pwr;
-    this->max_pwr = this->max_pwr << 8; // use bigger range for exact calculations
 
     pccPowerLastCheckMillis = 0; //time, the pwr was last adjusted.
 
     eLast = 0;       // delta (actual - desired) at last measurement // for the d-summand
     eSum = 0;        // integration of all deltas in the past // for the I-summand
-    resultPowerExact = 0; // calculation result must be finer than pccPower
+    resultPower = 0; // calculation result must be finer than pccPower
 #ifdef DEBUG_SPEEDCONTROL
     pinMode(13, OUTPUT);
 #endif // DEBUG_SPEEDCONTROL
@@ -38,75 +45,89 @@ PidController::PidController(int max_e, int max_eSum, int intervall_millis, int 
 
 void PidController::checkOverload()
 {
-	// check if actual rpm remains zero for 2sec when load is > 80%
+	// check if  actual rpm remains zero for 2sec when load is > 80%
 	// if that occurs, turn off to 0% and wait 10secs
 
 }
 
 void PidController::set_parameters(byte kp, byte ki, byte kd)
 {
-    this->kp = kp * 5;
+    this->kp = kp;
     this->ki = ki;
-    this->kd = kd * 10 * 200 / intervall_millis;
+    this->kd = kd;
 }
 
 int PidController::regulate(int desired, int actual)
 {
 
-    long e = 0;
-    long d = 0;
     long y = 0;
 
     if (desired == 0)
     {
         // turn off immidiately and thats it ...
-        resultPowerExact = 0;
+        resultPower = 0;
     }
     else
     {
         // ... otherwise calculate in definded intervalls
-        if (millis() - pccPowerLastCheckMillis > intervall_millis )
+        if (millis() - pccPowerLastCheckMillis > INTERVALL_REGULATE_MILLIS )
         {
 
 #ifdef DEBUG_SPEEDCONTROL
            PORTB |=  B00100000; //set pin13 to HIGH for timemeasurement
 #endif // DEBUG_SPEEDCONTROL
 
-           // now its time for a adjustment
+            // now its time for a adjustment (calculation costs about 10 mySeconds)
+
             pccPowerLastCheckMillis = millis(); // save time of last adjustment
 
-            e = constrain(actual - desired, -max_e, max_e); // diff between target and actual speed
-            d = e - eLast;
+            int e = actual - desired; // diff between target and actual speed
 
             // integration for the i part
-            eSum = eSum + e;
-            int myeSum = constrain(eSum + e, -max_eSum, max_eSum);
+            // eSum is the over all integration, myeSum is limited for the use in the formula
+            eSum += e;
+            int myeSum = constrain(eSum, -max_eSum, max_eSum);
+
+            // differential for d part
+            int d = e - eLast;
 
             // save for next call difference at last measurement, used for D - part
             eLast = e;
 
-            // PID formula
-            y = - ( kp * e + ki * myeSum + kd * d);
+            e = constrain(e, -max_e, max_e); // limit for use in formula
 
-            resultPowerExact += y ;
+
+            // PID formula
+            // take half of the value, that the parameters kp ki and kd allow finer adjustment
+            y = - ( kp * e + (ki * myeSum) + kd * d ) >> 1;
+
+            // in very small rpm areas, make the steps also smaller
+            if (desired < LOW_RPM_LIMIT)
+            {
+                y =  y >> 1;
+            }
+
+            resultPower += int(y) ;
 
             // map the long to integer parameter pccPower and limit it to 0 .. max range*256
-            resultPowerExact = constrain(resultPowerExact, 0, max_pwr);
+            resultPower = constrain(resultPower, 0, MAX_POWER);
 
 #ifdef DEBUG_SPEEDCONTROL
            PORTB &= ~B00100000; //set pin13 back to LOW for timemeasurement
            Serial.print("SPC:\t" + lFill(String(actual), 6, " ") +
-                            "\t" + lFill(String(e), 6, " ") +
-                            "\t" + lFill(String(myeSum), 6, " ") +
-                            "\t" + lFill(String(d), 6, " ") +
-                            "\t" + lFill(String(y ), 8, " ") +
-                            "\t" + lFill(String(resultPowerExact), 8, "0") +
-                            "\t" + lFill(String(resultPowerExact >> 8), 3, "0") + "\n");
+                            "\t" + lFill(String(desired), 5, " ") +
+                            "\t" + lFill(String(e), 5, " ") +
+                            "\t" + lFill(String(d), 5, " ") +
+                            //"\t" + lFill(String(eSum), 5, " ") +
+                            //"\t" + lFill(String(myeSum), 5, " ") +
+
+                            "\t" + lFill(String(y), 5, " ") +
+                            "\t" + lFill(String(resultPower>>1), 4, "0") + "\n");
 #endif
 
         }
     }
-    return int(resultPowerExact >> 8);   // reduce to desired range
+    return resultPower;
 
 
 }
