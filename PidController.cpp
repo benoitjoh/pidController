@@ -33,8 +33,6 @@ PidController::PidController(int max_e, int max_eSum)
 {
     this->max_e = max_e;
     this->max_eSum = max_eSum;
-    this->pinDirSwitch = pinDirSwitch;
-
 
     pccPowerLastCheckMillis = 0; //time, the pwr was last adjusted.
 
@@ -67,6 +65,8 @@ void PidController::enable_direction_management(byte pinDirSwitch)
     // enable direction management
     this->pinDirSwitch = pinDirSwitch;
     pinMode(pinDirSwitch, OUTPUT);
+    actualDirection = 0;
+    digitalWrite(pinDirSwitch, actualDirection);
 }
 
 void PidController::set_direction(byte desiredDirection)
@@ -76,6 +76,10 @@ void PidController::set_direction(byte desiredDirection)
     Serial.print("SPC: direction change reqested \n");
 #endif
 
+}
+byte PidController::get_direction()
+{
+    return actualDirection;
 }
 
 

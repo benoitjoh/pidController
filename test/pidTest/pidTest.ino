@@ -52,7 +52,6 @@ struct
 PidController pid(PID_MAX_E, PID_MAX_E_SUM);
 
 int pccPower = 0; // value for the phase cut modulation control 0 ... 2048; zero is OFF
-int pccPowerLast = -1;
 int desiredRpm = 600;
 int actualRpm = 0;
 int dir = 0;
@@ -164,17 +163,20 @@ void loop()
     actualRpm = RPM.getRpm();
     pccPower = pid.regulate(desiredRpm, actualRpm);
 
-    if (pccPower != pccPowerLast)
-    {
-        PCCtrl.set_pcc(pccPower);
-    }
-    pccPowerLast = pccPower; 
+    PCCtrl.set_pcc(pccPower);
     
     String dirName = "R";
+    byte actualDir = pid.get_direction();
     if (dir == 1)
     {
         dirName = "L";
     }
+    if (actualDir != dir and int(millis())>>9 & 1 == 1)
+    {
+        // if change is pending, let the letter blink
+        dirName = " ";
+    }
+    
     lcd.home();
     lcd.print("kp" + leftFill(String(pidconf.kp), 2, " ") + "  ki" + leftFill(String(pidconf.ki), 2, " ") + "  kd" + leftFill(String(pidconf.kd), 2, " "));
     lcd.setCursor(0,1);

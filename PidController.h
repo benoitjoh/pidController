@@ -48,6 +48,7 @@ class PidController
 
         void enable_direction_management(byte pinDirSwitch);
         void set_direction(byte desiredDirection);
+        byte get_direction();
 
     private:
         // parameters
