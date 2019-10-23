@@ -52,7 +52,7 @@ struct
 PidController pid(PID_MAX_E, PID_MAX_E_SUM);
 
 int pccPower = 0; // value for the phase cut modulation control 0 ... 2048; zero is OFF
-int desiredRpm = 600;
+int desiredRpm = 800;
 int actualRpm = 0;
 int dir = 0;
 
@@ -139,8 +139,13 @@ void loop()
            break;
         case  131:
            dir = ~dir & 1;
-           delay(900);
+           //delay(900);
            pid.set_direction(dir);
+           for (byte i=0; i<8; i++){
+               latch.setComplete(64 << (i & 1));
+               delay(250);
+           }
+
            break;
 
         case  132:
